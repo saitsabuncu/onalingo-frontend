@@ -1,38 +1,28 @@
-.App {
-  text-align: center;
+import React, { useState, useEffect } from "react";
+
+function App() {
+  const [lessons, setLessons] = useState([]);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/lessons/")
+      .then(res => res.json())
+      .then(data => setLessons(data));
+  }, []);
+
+  return (
+    <div>
+      <h1>OnaLingo Demo</h1>
+      <ul>
+        {lessons.map(lesson => (
+          <li key={lesson.id}>
+            <h3>{lesson.title}</h3>
+            <p>{lesson.transcript}</p>
+            {lesson.audio_url && <audio controls src={lesson.audio_url}></audio>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+export default App;
