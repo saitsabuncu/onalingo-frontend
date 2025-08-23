@@ -1,14 +1,12 @@
-// OnaLingo Demo UI (sağlamlaştırılmış)
-// - Login + JWT (username/password)
-// - Lesson list + detail (audio + transcript)
-// - Token persistence + 401 handling + loading/error
+// OnaLingo Demo UI (gelişmiş versiyon - bileşenleştirilmiş)
+// - Login bileşeni ayrıldı (LoginForm.js)
+// - Token yönetimi, ders listeleme, detay gösterimi
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import LoginForm from "./components/LoginForm";
 
 const API = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
-
-// axios varsayılan ayar (baseURL)
 axios.defaults.baseURL = API;
 
 function setAuthHeader(token) {
@@ -23,39 +21,26 @@ function setAuthHeader(token) {
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [form, setForm] = useState({ username: "", password: "" });
   const [lessons, setLessons] = useState([]);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
-  // İlk yüklemede token varsa header’a koy
-  useEffect(() => {
-    setAuthHeader(token);
-  }, []); // sadece mount’ta
-
-  // Token değiştiğinde header’ı güncelle ve dersleri çek
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setAuthHeader(token);
     fetchLessons();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, [token]);
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  async function handleLogin(form) {
     setErrMsg("");
     setLoading(true);
     try {
-      const payload = {
-        username: form.username.trim(),
-        password: form.password, // password'a trim önermem
-      };
-      const res = await axios.post("/api/token/", payload, {
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await axios.post("/api/token/", form);
       const access = res.data?.access;
       if (access) {
-        setToken(access); // useEffect header’ı ayarlayıp dersleri çekecek
+        setToken(access);
       } else {
         setErrMsg("Beklenmeyen yanıt: access token yok.");
       }
@@ -71,78 +56,49 @@ export default function App() {
   }
 
   async function fetchLessons() {
-  setErrMsg("");
-  setLoading(true);
-  try {
-    const res = await axios.get("/api/lessons/");
-    setLessons(res.data || []);
-  } catch (err) {
-    console.log("LESSONS ERROR =>", err?.response?.status, err?.response?.data || err?.message);
-    if (err?.response?.status === 401) {
-      setToken("");
-      setAuthHeader("");
-      setErrMsg("Oturum süresi doldu veya yetki yok. Tekrar giriş yapın.");
-    } else {
-      setErrMsg("Dersler alınamadı.");
+    setErrMsg("");
+    setLoading(true);
+    try {
+      const res = await axios.get("/api/lessons/");
+      setLessons(res.data || []);
+    } catch (err) {
+      console.log("LESSONS ERROR =>", err?.response?.status, err?.response?.data || err?.message);
+      if (err?.response?.status === 401) {
+        setToken("");
+        setAuthHeader("");
+        setErrMsg("Oturum süresi doldu veya yetki yok. Tekrar giriş yapın.");
+      } else {
+        setErrMsg("Dersler alınamadı.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
   }
-}
 
   function handleLogout() {
     setToken("");
     setAuthHeader("");
     setSelectedLesson(null);
-    setForm({ username: "", password: "" });
+  }
+
+  if (!token) {
+    return <LoginForm onLogin={handleLogin} error={errMsg} />;
   }
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">OnaLingo Demo</h1>
-
-        {!token ? (
-          <form onSubmit={handleLogin} className="flex gap-2 items-center">
-            <input
-              className="border p-1"
-              placeholder="Kullanıcı adı"
-              value={form.username}
-              onChange={(e) =>
-                setForm({ ...form, username: e.target.value })
-              }
-            />
-            <input
-              type="password"
-              className="border p-1"
-              placeholder="Şifre"
-              value={form.password}
-              onChange={(e) =>
-                setForm({ ...form, password: e.target.value })
-              }
-            />
-            <button
-              className="bg-blue-600 text-white px-3 py-1 rounded"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? "Giriş..." : "Giriş"}
-            </button>
-          </form>
-        ) : (
-          <div className="flex gap-3 items-center">
-            <span className="text-sm text-gray-600">Giriş yapıldı</span>
-            <button className="text-sm underline" onClick={handleLogout}>
-              Çıkış
-            </button>
-          </div>
-        )}
+        <div className="flex gap-3 items-center">
+          <span className="text-sm text-gray-600">Giriş yapıldı</span>
+          <button className="text-sm underline" onClick={handleLogout}>
+            Çıkış
+          </button>
+        </div>
       </div>
 
       {errMsg && (
-        <div className="mb-3 p-2 rounded bg-red-50 text-red-700 text-sm">
-          {errMsg}
-        </div>
+        <div className="mb-3 p-2 rounded bg-red-50 text-red-700 text-sm">{errMsg}</div>
       )}
 
       {loading && <div className="mb-2 text-sm text-gray-600">Yükleniyor...</div>}
@@ -173,7 +129,6 @@ export default function App() {
                   onClick={() => setSelectedLesson(lesson)}
                 >
                   <strong>{lesson.title}</strong>
-                  {/* backend listte level’i string döndürmüyorsa burayı gösterme */}
                   {lesson.level ? <> — {lesson.level}</> : null}
                 </li>
               ))}
