@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import LoginForm from "./components/LoginForm";
+import LessonCard from "./components/LessonCard";
 
 const API = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
 axios.defaults.baseURL = API;
@@ -123,14 +124,7 @@ export default function App() {
           ) : (
             <ul className="space-y-2">
               {lessons.map((lesson) => (
-                <li
-                  key={lesson.id}
-                  className="border p-3 rounded hover:bg-gray-100 cursor-pointer"
-                  onClick={() => setSelectedLesson(lesson)}
-                >
-                  <strong>{lesson.title}</strong>
-                  {lesson.level ? <> — {lesson.level}</> : null}
-                </li>
+                <LessonCard key={lesson.id} lesson={lesson} onSelect={setSelectedLesson} />
               ))}
             </ul>
           )}
